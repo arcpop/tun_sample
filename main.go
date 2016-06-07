@@ -167,6 +167,6 @@ func main()  {
         fmt.Println(err)
         return
     } 
-    fmt.Println(string(buf[:n]))
+    fmt.Println("Got back: " + string(buf[:n]))
     conn.Close()
 }
