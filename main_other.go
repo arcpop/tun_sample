@@ -1,3 +1,6 @@
+// +build !windows
+// +build !linux
+
 package main
 
 import (
