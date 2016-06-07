@@ -84,30 +84,89 @@ func (s *simpleForwarding) Close() error {
 func main()  {
     addr1, err := net.ResolveUDPAddr("udp", "localhost:5001")
     if err != nil {
-        fmt.Println(err)
+        fmt.Println("ResolveUDPAddr", err)
         return
     }
     addr2, err := net.ResolveUDPAddr("udp", "localhost:5002")  
     if err != nil {
-        fmt.Println(err)
+        fmt.Println("ResolveUDPAddr", err)
         return
     }  
 
     s1, err := NewSimpleForwarding("", addr1, addr2)
     if err != nil {
-        fmt.Println(err)
+        fmt.Println("NewSimpleForwarding", err)
         return
     } 
     defer s1.Close()
     s2, err := NewSimpleForwarding("", addr2, addr1)
     if err != nil {
-        fmt.Println(err)
+        fmt.Println("NewSimpleForwarding", err)
         return
     } 
     defer s2.Close()
 
-    s1.TunAdapter.Write([]byte("Hello World!"))
+    err = s1.TunAdapter.SetIPAddress(
+        net.IP{192, 168, 100, 2}, 
+        net.IP{192, 168, 100, 255},
+        net.IP{255, 255, 255, 0})
+    if err != nil {
+        fmt.Println("SetIPAddress", err)
+        return
+    }
+    err = s2.TunAdapter.SetIPAddress(
+        net.IP{192, 168, 100, 3}, 
+        net.IP{192, 168, 100, 255},
+        net.IP{255, 255, 255, 0})
+    if err != nil {
+        fmt.Println("SetIPAddress", err)
+        return
+    }
+
+    addr3, err := net.ResolveTCPAddr("tcp", "192.168.100.2:6001")
+    if err != nil {
+        fmt.Println("ResolveTCPAddr", err)
+        return
+    }
+    addr4, err := net.ResolveTCPAddr("tcp", "192.168.100.3:6002")  
+    if err != nil {
+        fmt.Println("ResolveTCPAddr", err)
+        return
+    } 
+    
+    listener, err := net.ListenTCP("tcp", addr3)
+    go func() {
+        conn, err := listener.Accept()
+        if err != nil {
+            fmt.Println("Accept", err)
+            return
+        } 
+        buffer := make([]byte, 2048)
+        n, err := conn.Read(buffer)
+        msg := string(buffer[:n])
+        fmt.Println("Received: " + msg)
+        msg += " Hello World 2!"
+        conn.Write([]byte(msg))
+        conn.Close()
+        listener.Close()
+    }()
+
+    conn, err := net.DialTCP("tcp", addr4, addr3)
+    if err != nil {
+        fmt.Println("DialTCP", err)
+        return
+    }
+    _, err = conn.Write([]byte("Hello World!"))
+    if err != nil {
+        fmt.Println(err)
+        return
+    } 
     buf := make([]byte, 2048)
-    s2.TunAdapter.Read(buf)
-    fmt.Println(string(buf))
+    n, err := conn.Read(buf)
+    if err != nil {
+        fmt.Println(err)
+        return
+    } 
+    fmt.Println(string(buf[:n]))
+    conn.Close()
 }
