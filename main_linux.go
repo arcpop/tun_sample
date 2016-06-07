@@ -112,12 +112,6 @@ func main()  {
         return
     }
 
-    //Make a tcp connection between those addresses
-    addr3, err := net.ResolveTCPAddr("tcp", "192.168.100.2:6001")
-    if err != nil {
-        fmt.Println("ResolveTCPAddr", err)
-        return
-    }
     addr4, err := net.ResolveTCPAddr("tcp", "192.168.100.3:6002")  
     if err != nil {
         fmt.Println("ResolveTCPAddr", err)
